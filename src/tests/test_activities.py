@@ -21,9 +21,9 @@ def reset_activities(client):
     # Store original state with deep copy to prevent state leakage
     from src import app as app_module
     original_activities = copy.deepcopy(app_module.activities)
-    
+
     yield client
-    
+
     # Restore original state after test
     app_module.activities.clear()
     app_module.activities.update(copy.deepcopy(original_activities))
@@ -36,10 +36,10 @@ class TestGetActivities:
         """Test that GET /activities returns all available activities."""
         # Arrange
         client = reset_activities
-        
+
         # Act
         response = client.get("/activities")
-        
+
         # Assert
         assert response.status_code == 200
         activities = response.json()
@@ -52,14 +52,14 @@ class TestGetActivities:
         """Test that activity data includes participants list."""
         # Arrange
         client = reset_activities
-        
+
         # Act
         response = client.get("/activities")
-        
+
         # Assert
         activities = response.json()
         chess_club = activities["Chess Club"]
-        
+
         assert "participants" in chess_club
         assert isinstance(chess_club["participants"], list)
         assert "michael@mergington.edu" in chess_club["participants"]
@@ -69,14 +69,14 @@ class TestGetActivities:
         """Test that activities include all required fields."""
         # Arrange
         client = reset_activities
-        
+
         # Act
         response = client.get("/activities")
-        
+
         # Assert
         activities = response.json()
         chess_club = activities["Chess Club"]
-        
+
         assert "description" in chess_club
         assert "schedule" in chess_club
         assert "max_participants" in chess_club
@@ -92,13 +92,13 @@ class TestSignup:
         client = reset_activities
         activity_name = "Chess Club"
         email = "newstudent@mergington.edu"
-        
+
         # Act
         response = client.post(
             f"/activities/{activity_name}/signup",
             params={"email": email}
         )
-        
+
         # Assert
         assert response.status_code == 200
         result = response.json()
@@ -111,11 +111,12 @@ class TestSignup:
         client = reset_activities
         activity_name = "Chess Club"
         email = "newstudent@mergington.edu"
-        
+
         # Act
-        client.post(f"/activities/{activity_name}/signup", params={"email": email})
+        client.post(
+            f"/activities/{activity_name}/signup", params={"email": email})
         response = client.get("/activities")
-        
+
         # Assert
         activities = response.json()
         participants = activities[activity_name]["participants"]
@@ -127,13 +128,13 @@ class TestSignup:
         client = reset_activities
         activity_name = "Chess Club"
         email = "michael@mergington.edu"  # Already signed up
-        
+
         # Act
         response = client.post(
             f"/activities/{activity_name}/signup",
             params={"email": email}
         )
-        
+
         # Assert
         assert response.status_code == 400
         result = response.json()
@@ -145,13 +146,13 @@ class TestSignup:
         client = reset_activities
         activity_name = "Nonexistent Activity"
         email = "student@mergington.edu"
-        
+
         # Act
         response = client.post(
             f"/activities/{activity_name}/signup",
             params={"email": email}
         )
-        
+
         # Assert
         assert response.status_code == 404
         result = response.json()
@@ -164,7 +165,7 @@ class TestSignup:
         activity_name = "Basketball Team"  # Has 0 participants initially
         email1 = "student1@mergington.edu"
         email2 = "student2@mergington.edu"
-        
+
         # Act
         response1 = client.post(
             f"/activities/{activity_name}/signup",
@@ -174,11 +175,11 @@ class TestSignup:
             f"/activities/{activity_name}/signup",
             params={"email": email2}
         )
-        
+
         # Assert
         assert response1.status_code == 200
         assert response2.status_code == 200
-        
+
         # Verify both are in the activity
         response = client.get("/activities")
         participants = response.json()[activity_name]["participants"]
@@ -195,13 +196,13 @@ class TestUnregister:
         client = reset_activities
         activity_name = "Chess Club"
         email = "michael@mergington.edu"  # Already signed up
-        
+
         # Act
         response = client.post(
             f"/activities/{activity_name}/unregister",
             params={"email": email}
         )
-        
+
         # Assert
         assert response.status_code == 200
         result = response.json()
@@ -214,11 +215,12 @@ class TestUnregister:
         client = reset_activities
         activity_name = "Chess Club"
         email = "michael@mergington.edu"
-        
+
         # Act
-        client.post(f"/activities/{activity_name}/unregister", params={"email": email})
+        client.post(
+            f"/activities/{activity_name}/unregister", params={"email": email})
         response = client.get("/activities")
-        
+
         # Assert
         activities = response.json()
         participants = activities[activity_name]["participants"]
@@ -230,13 +232,13 @@ class TestUnregister:
         client = reset_activities
         activity_name = "Chess Club"
         email = "notsignedupstudent@mergington.edu"
-        
+
         # Act
         response = client.post(
             f"/activities/{activity_name}/unregister",
             params={"email": email}
         )
-        
+
         # Assert
         assert response.status_code == 400
         result = response.json()
@@ -248,13 +250,13 @@ class TestUnregister:
         client = reset_activities
         activity_name = "Nonexistent Activity"
         email = "student@mergington.edu"
-        
+
         # Act
         response = client.post(
             f"/activities/{activity_name}/unregister",
             params={"email": email}
         )
-        
+
         # Assert
         assert response.status_code == 404
         result = response.json()
@@ -266,23 +268,23 @@ class TestUnregister:
         client = reset_activities
         activity_name = "Chess Club"
         email = "michael@mergington.edu"
-        
+
         # Act - First unregister
         unregister_response = client.post(
             f"/activities/{activity_name}/unregister",
             params={"email": email}
         )
-        
+
         # Act - Then sign up again
         signup_response = client.post(
             f"/activities/{activity_name}/signup",
             params={"email": email}
         )
-        
+
         # Assert
         assert unregister_response.status_code == 200
         assert signup_response.status_code == 200
-        
+
         # Verify email is back in participants
         response = client.get("/activities")
         participants = response.json()[activity_name]["participants"]
@@ -297,7 +299,7 @@ class TestRootEndpoint:
         # Arrange
         # Act
         response = client.get("/", follow_redirects=False)
-        
+
         # Assert
         assert response.status_code == 307  # Temporary redirect
         assert "/static/index.html" in response.headers["location"]
